@@ -1,0 +1,3 @@
+background: https://edermunizz.itch.io/free-pixel-art-forest
+player: https://rvros.itch.io/animated-pixel-hero
+slime: https://rvros.itch.io/pixel-art-animated-slime
