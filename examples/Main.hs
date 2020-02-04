@@ -140,7 +140,7 @@ initialAnims = GameAnims
   { _aPlayer = Nothing
   , _aSlime = Nothing
   , _aParticles = Nothing
-  , _aBackground = Just (scrollingBg 5 (bgCounters . counter1) (bgCounters . flipped1) `parallel` scrollingBg 7.5 (bgCounters . counter2) (bgCounters . flipped2) `parallel` scrollingBg 10 (bgCounters . counter3) (bgCounters . flipped3) `parallel` scrollingBg 15 (bgCounters . counter4) (bgCounters . flipped4))
+  , _aBackground = Just parallax
   , _aMenu = Just menuIntro
   }
 
@@ -192,6 +192,17 @@ main = do
   SDL.destroyWindow window
   SDL.quit
 
+parallax :: (Monad f, Parallel f, LinearTo GameView f, Set GameView f, Get GameView f) =>
+  f ()
+parallax =
+  scrollingBg 5 (bgCounters . counter1) (bgCounters . flipped1)
+  `parallel`
+  scrollingBg 7.5 (bgCounters . counter2) (bgCounters . flipped2)
+  `parallel`
+  scrollingBg 10 (bgCounters . counter3) (bgCounters . flipped3)
+  `parallel`
+  scrollingBg 15 (bgCounters . counter4) (bgCounters . flipped4)
+
 scrollingBg :: (Monad f, LinearTo GameView f, Set GameView f, Get GameView f) =>
   Float -> Lens' GameView Float -> Lens' GameView Bool -> f ()
 scrollingBg dur counter flipped =
@@ -229,9 +240,9 @@ menuOutro =
 moveAnim :: (Applicative f, Parallel f, LinearTo GameView f, Delay f, SetTexture GameView f) =>
   Float -> f ()
 moveAnim x =
-  linearTo (vPlayer . _1) (For 0.3) (To x)
+  linearTo (vPlayer . _1) (For 1) (To x)
   `parallel`
-  sheet (vPlayer . _3) 0.1 ["playerRun0.png", "playerRun1.png", "playerRun2.png", "playerIdle.png"]
+  sheet (vPlayer . _3) 0.1 ["playerRun0.png", "playerRun1.png", "playerRun2.png",  "playerRun3.png", "playerRun4.png", "playerRun0.png", "playerRun1.png", "playerRun2.png",  "playerRun3.png", "playerRun4.png", "playerIdle.png"]
 
 sheet :: (Applicative f, Delay f, SetTexture s f) =>
   Lens' s String -> Float -> [String] -> f ()
@@ -304,20 +315,20 @@ appLoop renderer textures view anims Counter{ now, prev } = do
       ePressed = any (eventIsPress SDL.KeycodeE) events
       spcPressed = any (eventIsPress SDL.KeycodeSpace) events
   -- update game view
-  let view1 = case (aPressed, dPressed) of
-        (True, _) -> view & vPlayer . _4 .~ True
-        (_, True) -> view & vPlayer . _4 .~ False
-        (_, _) -> view
+  let view1 = case (aPressed, dPressed, anims ^. aPlayer) of
+        (True, _, Nothing) -> view & vPlayer . _4 .~ True
+        (_, True, Nothing) -> view & vPlayer . _4 .~ False
+        (_, _, _) -> view
   let view2 = case (ePressed) of
         True -> view1 & bgCounters . moving %~ not
         _ -> view1
   let viewU = view2
   -- update animations
-  let anims1 = case (aPressed, dPressed, spcPressed) of
-        (True, _, _) -> anims & aPlayer %~ \l -> addIfNothing l (moveAnim ((viewU ^. vPlayer . _1) - 50))
-        (_, True, _) -> anims & aPlayer %~ \l -> addIfNothing l (moveAnim ((viewU ^. vPlayer . _1) + 50))
-        (_, _, True) -> anims & aPlayer %~ \l -> addIfNothing l attackAnim
-        (_, _, _) -> anims
+  let anims1 = case (aPressed, dPressed, viewU ^. vPlayer . _1, spcPressed) of
+        (True, _, 300, _) -> anims & aPlayer %~ \l -> addIfNothing l (moveAnim ((viewU ^. vPlayer . _1) - 250))
+        (_, True, 50, _) -> anims & aPlayer %~ \l -> addIfNothing l (moveAnim ((viewU ^. vPlayer . _1) + 250))
+        (_, _, _, True) -> anims & aPlayer %~ \l -> addIfNothing l attackAnim
+        (_, _, _, _) -> anims
   let anims2 = case (mPressed, viewU ^. vMenu . _4) of
         (True, False) -> anims1 & aMenu %~ \l -> addIfNothing l menuIntro
         (True, True) -> anims1 & aMenu %~ \l -> addIfNothing l menuOutro
