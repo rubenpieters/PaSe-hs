@@ -2,13 +2,19 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE Arrows #-}
+{-# LANGUAGE FunctionalDependencies #-}
 
 module AnimDefs where
+
+import Prelude hiding ((.))
 
 import View
 import Sprite
 import PaSe
 
+import Control.Arrow
+import Control.Category
 import Data.List (find, findIndex)
 import Data.Functor.Const
 import Lens.Micro hiding (set)
@@ -19,29 +25,40 @@ class SetTexture s f where
 instance (Applicative m) => SetTexture s (Animation s m) where
   setTexture = set
 
-class Create s f where
-  create :: (s -> (s, Int)) -> f Int
-
-instance (Applicative m) => Create s (Animation s m) where
-  create f = Animation $ \s t -> let
-    (newS, index) = f s
-    in pure (newS, Right index, Just t)
-
-class Delete s f where
-  delete :: (s -> s) -> f ()
-
-instance (Applicative m) => Delete s (Animation s m) where
-  delete f = Animation $ \s t ->
-    pure (f s, Right (), Just t)
-
 instance SetTexture s (Const [String]) where
   setTexture _ texture = Const [texture]
 
-instance Monoid m => Create s (Const m) where
-  create _ = Const mempty
 
-instance Monoid m => Delete s (Const m) where
-  delete _ = Const mempty
+
+
+newtype ConstArr a i o = ConstArr { getConstArr :: a }
+
+instance Monoid m => LinearToA obj (ConstArr m) where
+  linearToA _ _ = ConstArr mempty
+
+instance (Monoid a) => Category (ConstArr a) where
+  id = ConstArr mempty
+  (ConstArr a1) . (ConstArr a2) = ConstArr (a1 <> a2)
+
+instance (Monoid a) => Arrow (ConstArr a) where
+  arr _ = ConstArr mempty
+  first (ConstArr a) = ConstArr a
+
+instance (Ord a) => ParallelA (ConstArr a) where
+  liftP2A _ _ (ConstArr a1) (ConstArr a2) = ConstArr (max a1 a2)
+
+
+class WithParticle s a f | f -> a where
+  withParticle :: String -> (String -> s -> (s, Int)) -> (Int -> s -> s) -> a Int () -> f ()
+
+instance (Monad m) => WithParticle s (Kleisli (Animation s m)) (Animation s m) where
+  withParticle texture createParticle deleteParticle a = Animation $ \s t -> let
+    (s', id) = createParticle texture s
+    remove del i = Animation $ \s t -> pure (del i s, Right (), Just t)
+    in runAnimation (runKleisli a id `sequential` remove deleteParticle id) s' t
+
+instance WithParticle s (ConstArr [String]) (Const [String]) where
+  withParticle texture _ _ a = Const (texture : getConstArr a)
 
 -- Menu Animations
 
@@ -70,7 +87,7 @@ moveAnim xVal =
   `parallel`
   frameByFrame (player . texture) 0.1 ["playerRun0.png", "playerRun1.png", "playerRun2.png",  "playerRun3.png", "playerRun4.png", "playerRun0.png", "playerRun1.png", "playerRun2.png",  "playerRun3.png", "playerRun4.png", "playerIdle.png"]
 
-attackAnim :: (Monad f, Delay f, SetTexture GameView f, Get GameView f, IfThenElse f, Parallel f, LinearTo GameView f, Create GameView f, Delete GameView f) =>
+attackAnim :: (Applicative f, Delay f, SetTexture GameView f, Get GameView f, IfThenElse f, Parallel f, LinearTo GameView f, LinearToA GameView a, Arrow a, ParallelA a, WithParticle GameView a f) =>
   f ()
 attackAnim =
   frameByFrame (player . texture) 0.05 ["playerAtk2_0.png", "playerAtk2_1.png", "playerAtk2_2.png", "playerAtk2_3.png"]
@@ -92,23 +109,22 @@ slimeHurtSheet :: (Applicative f, Delay f, SetTexture GameView f, Get GameView f
   f ()
 slimeHurtSheet = frameByFrame (slime . texture) 0.1 ["slimeHurt0.png", "slimeHurt1.png", "slimeHurt2.png", "slimeHurt3.png", "slimeIdle.png"]
 
-slimeHurt :: (Monad f, Delay f, SetTexture GameView f, Get GameView f, IfThenElse f, Delay f, Parallel f, Create GameView f, Delete GameView f, LinearTo GameView f) =>
+slimeHurt :: (Applicative f, Delay f, SetTexture GameView f, Get GameView f, IfThenElse f, Parallel f, LinearTo GameView f, Parallel f, LinearToA GameView a, Arrow a, ParallelA a, WithParticle GameView a f) =>
   f ()
 slimeHurt =
   ifThenElse
     (fmap (\loc -> loc == 300) (get (player . x)))
-    (delay 0.15 `sequential` (slimeHurtSheet `parallel` minusOneParticle))
+    (delay 0.15 `sequential` (slimeHurtSheet `parallel` minusOneParticleA))
     (delay 0)
 
-minusOneParticle :: (Monad f, LinearTo GameView f, Create GameView f, Delete GameView f, Parallel f) =>
-  f ()
-minusOneParticle = do
-  id <- create (createParticle 390 390 "minusOne.png")
-  ( linearTo (particles . paId id . _1 . y) (For 0.5) (To 320)
-    `parallel`
-    linearTo (particles . paId id . _1 . alpha) (For 0.5) (To 0)
-    )
-  delete (deleteParticle id)
+minusOneParticleA :: (LinearTo GameView f, Parallel f, LinearToA GameView a, Arrow a, ParallelA a, WithParticle GameView a f) => f ()
+minusOneParticleA = let
+  particleAnim :: (LinearToA GameView a, Arrow a, ParallelA a) => a Int ()
+  particleAnim =
+      (arr (\id -> LensA (particles . paId id . _1 . y)) >>> linearToA (For 0.5) (To 320))
+      `parallelA`
+      (arr (\id -> LensA (particles . paId id . _1 . alpha)) >>> linearToA (For 0.5) (To 0))
+  in withParticle "minusOne.png" (createParticle 390 390) deleteParticle particleAnim
 
 -- Background Animation
 
