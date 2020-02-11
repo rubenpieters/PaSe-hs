@@ -8,7 +8,7 @@ import PaSe.Mtl
 
 import Control.Monad (ap, liftM)
 
-import Lens.Micro
+import Lens.Micro hiding (set)
 
 newtype Animation s m a = Animation {
   runAnimation ::
@@ -120,3 +120,6 @@ instance (Monad m) => IfThenElse (Animation s m) where
   ifThenElse fBool fThen fElse = do
     b <- fBool
     if b then fThen else fElse
+
+instance (Applicative m) => SetTexture s (Animation s m) where
+  setTexture = set

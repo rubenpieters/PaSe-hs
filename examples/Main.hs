@@ -8,14 +8,18 @@ import qualified View as V
 import qualified Anims as A
 import AnimDefs
 
+import PaSe (Texture(..))
+
 import qualified SDL
 import SDL.Vect
 import Data.Functor.Const
 import Data.List (nub)
 
-allTextures :: [String]
-allTextures = nub (getConst (moveAnim 0) ++ ["playerAtk2_0.png", "playerAtk2_1.png", "playerAtk2_2.png", "playerAtk2_3.png", "playerAtk2_4.png", "playerAtk2_5.png", "minusOne.png", "menu.png", "slimeHurt0.png", "slimeHurt1.png", "slimeHurt2.png", "slimeHurt3.png", "slimeIdle.png", "bgSection0.png", "bgSection1.png", "bgSection2.png", "bgSection3.png"])
-
+allTextures :: [Texture]
+allTextures = nub $
+  getConst (moveAnim 0) ++
+  getConst (attackAnim) ++
+  map Texture ["bgSection0.png", "bgSection1.png", "bgSection2.png", "bgSection3.png", "menu.png"]
 
 main :: IO ()
 main = do

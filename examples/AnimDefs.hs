@@ -19,47 +19,6 @@ import Data.List (find, findIndex)
 import Data.Functor.Const
 import Lens.Micro hiding (set)
 
-class SetTexture s f where
-  setTexture :: Traversal' s String -> String -> f ()
-
-instance (Applicative m) => SetTexture s (Animation s m) where
-  setTexture = set
-
-instance SetTexture s (Const [String]) where
-  setTexture _ texture = Const [texture]
-
-
-
-
-newtype ConstArr a i o = ConstArr { getConstArr :: a }
-
-instance Monoid m => LinearToA obj (ConstArr m) where
-  linearToA _ _ = ConstArr mempty
-
-instance (Monoid a) => Category (ConstArr a) where
-  id = ConstArr mempty
-  (ConstArr a1) . (ConstArr a2) = ConstArr (a1 <> a2)
-
-instance (Monoid a) => Arrow (ConstArr a) where
-  arr _ = ConstArr mempty
-  first (ConstArr a) = ConstArr a
-
-instance (Ord a) => ParallelA (ConstArr a) where
-  liftP2A _ _ (ConstArr a1) (ConstArr a2) = ConstArr (max a1 a2)
-
-
-class WithParticle s a f | f -> a where
-  withParticle :: String -> (String -> s -> (s, Int)) -> (Int -> s -> s) -> a Int () -> f ()
-
-instance (Monad m) => WithParticle s (Kleisli (Animation s m)) (Animation s m) where
-  withParticle texture createParticle deleteParticle a = Animation $ \s t -> let
-    (s', id) = createParticle texture s
-    remove del i = Animation $ \s t -> pure (del i s, Right (), Just t)
-    in runAnimation (runKleisli a id `sequential` remove deleteParticle id) s' t
-
-instance WithParticle s (ConstArr [String]) (Const [String]) where
-  withParticle texture _ _ a = Const (texture : getConstArr a)
-
 -- Menu Animations
 
 menuIntro :: (Applicative f, Parallel f, LinearTo GameView f, Set GameView f) =>
@@ -124,7 +83,7 @@ minusOneParticleA = let
       (arr (\id -> LensA (particles . paId id . _1 . y)) >>> linearToA (For 0.5) (To 320))
       `parallelA`
       (arr (\id -> LensA (particles . paId id . _1 . alpha)) >>> linearToA (For 0.5) (To 0))
-  in withParticle "minusOne.png" (createParticle 390 390) deleteParticle particleAnim
+  in withParticle (Texture "minusOne.png") (createParticle 390 390) deleteParticle particleAnim
 
 -- Background Animation
 
@@ -154,15 +113,15 @@ parallax =
 -- Helper
 
 frameByFrame :: (Applicative f, Delay f, SetTexture s f) =>
-  Lens' s String -> Float -> [String] -> f ()
+  Lens' s Texture -> Float -> [String] -> f ()
 frameByFrame lens time [] = pure ()
-frameByFrame lens time (frame:[]) = setTexture lens frame
-frameByFrame lens time (frame:frames) = setTexture lens frame `sequential` go frames
+frameByFrame lens time (frame:[]) = setTexture lens (Texture frame)
+frameByFrame lens time (frame:frames) = setTexture lens (Texture frame) `sequential` go frames
   where
-    go (frame:[]) = delay time `sequential` setTexture lens frame
-    go (frame:frames) = delay time `sequential` setTexture lens frame `sequential` go frames
+    go (frame:[]) = delay time `sequential` setTexture lens (Texture frame)
+    go (frame:frames) = delay time `sequential` setTexture lens (Texture frame) `sequential` go frames
 
-createParticle :: Float -> Float -> String -> GameView -> (GameView, Int)
+createParticle :: Float -> Float -> Texture -> GameView -> (GameView, Int)
 createParticle x y texture view = let
   currentId = view ^. currentParticleId
   particle = Sprite { _x = x, _y = y, _width = 13*2, _height = 16*2, _alpha = 255, _flippedX = False, _texture = texture }
@@ -184,3 +143,15 @@ paId i = let
     Just ix -> take ix l ++ x : drop (ix+1) l
     Nothing -> error ("no particle with index " ++ show i)
   in lens get set
+
+class WithParticle s a f | f -> a where
+  withParticle :: Texture -> (Texture -> s -> (s, Int)) -> (Int -> s -> s) -> a Int () -> f ()
+
+instance (Monad m) => WithParticle s (Kleisli (Animation s m)) (Animation s m) where
+  withParticle texture createParticle deleteParticle a = Animation $ \s t -> let
+    (s', id) = createParticle texture s
+    remove del i = Animation $ \s t -> pure (del i s, Right (), Just t)
+    in runAnimation (runKleisli a id `sequential` remove deleteParticle id) s' t
+
+instance WithParticle s (ConstA [Texture]) (Const [Texture]) where
+  withParticle texture _ _ a = Const (texture : getConstA a)

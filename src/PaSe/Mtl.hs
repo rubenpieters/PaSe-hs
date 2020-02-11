@@ -19,8 +19,11 @@ class LinearTo s f where
 sequential :: (Applicative f) => f () -> f () -> f ()
 sequential f1 f2 = liftA2 (\_ _ -> ()) f1 f2
 
-instance Monoid m => LinearTo s (Const m) where
-  linearTo _ _ _ = Const mempty
+instance LinearTo s (Const [Texture]) where
+  linearTo _ _ _ = Const []
+
+instance LinearTo s (Const Duration) where
+  linearTo _ dur _ = Const dur
 
 -- Parallel
 
@@ -52,13 +55,22 @@ instance Monoid m => Delay (Const m) where
 
 -- Set
 
-class Set obj f where
-  set :: Traversal' obj a -> a -> f ()
+class Set s f where
+  set :: Traversal' s a -> a -> f ()
+
+-- SetTexture
+
+class SetTexture s f where
+  setTexture :: Traversal' s Texture -> Texture -> f ()
+
+instance SetTexture s (Const [Texture]) where
+  setTexture _ texture = Const [texture]
 
 -- Get
 
-class Get obj f where
-  get :: Lens' obj a -> f a
+class Get s f where
+  get :: Lens' s a -> f a
 
 instance Monoid m => Get s (Const m) where
   get _ = Const mempty
+

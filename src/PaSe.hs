@@ -5,6 +5,7 @@ module PaSe
   , Delay(..)
   , Get(..)
   , Set(..)
+  , SetTexture(..)
   , IfThenElse(..)
   , sequential
   , parallel
@@ -12,11 +13,14 @@ module PaSe
   , LinearToA(..)
   , ParallelA(..)
   , parallelA
+  , ConstA(..)
   , Duration(..)
   , Target(..)
+  , Texture(..)
   ) where
 
 import PaSe.Animation (Animation(..))
-import PaSe.Mtl (Parallel(..), LinearTo(..), Delay(..), Get(..), Set(..), IfThenElse(..), sequential, parallel)
+import PaSe.Mtl (Parallel(..), LinearTo(..), Delay(..), Get(..), Set(..), SetTexture(..), IfThenElse(..), sequential, parallel)
 import PaSe.Arrow.Mtl (LensA(..), LinearToA(..), ParallelA(..), parallelA)
-import PaSe.Types (Duration(..), Target(..))
+import PaSe.Arrow.Const (ConstA(..))
+import PaSe.Types (Duration(..), Target(..), Texture(..))

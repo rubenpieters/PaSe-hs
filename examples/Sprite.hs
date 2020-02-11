@@ -2,6 +2,8 @@
 
 module Sprite where
 
+import PaSe (Texture(..))
+
 import Textures
 
 import qualified SDL
@@ -18,7 +20,7 @@ data Sprite = Sprite
   , _height :: Float
   , _alpha :: Float -- 0 (transparent) - 255 (opaque)
   , _flippedX :: Bool
-  , _texture :: String
+  , _texture :: Texture
   }
 
 makeLenses ''Sprite

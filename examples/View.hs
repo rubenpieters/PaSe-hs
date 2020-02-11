@@ -2,6 +2,8 @@
 
 module View where
 
+import PaSe (Texture(..))
+
 import Sprite
 import Textures
 
@@ -36,7 +38,7 @@ initialPlayer = Sprite
   , _height = 37*2
   , _alpha = 255
   , _flippedX = False
-  , _texture = "playerIdle.png"
+  , _texture = Texture "playerIdle.png"
   }
 
 initialSlime :: Sprite
@@ -47,7 +49,7 @@ initialSlime = Sprite
   , _height = 25*2
   , _alpha = 255
   , _flippedX = False
-  , _texture = "slimeIdle.png"
+  , _texture = Texture "slimeIdle.png"
   }
 
 data Section = SectionA | SectionB
@@ -61,7 +63,7 @@ initialBgSection i section = Sprite
   , _height = 793
   , _alpha = 255
   , _flippedX = False
-  , _texture = "bgSection" ++ show i ++ ".png"
+  , _texture = Texture ("bgSection" ++ show i ++ ".png")
   }
 
 initialMenu :: Sprite
@@ -72,7 +74,7 @@ initialMenu = Sprite
   , _height = 162
   , _alpha = 0
   , _flippedX = False
-  , _texture = "menu.png"
+  , _texture = Texture "menu.png"
   }
 
 initialView :: GameView

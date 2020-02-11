@@ -22,3 +22,6 @@ instance Monoid MaxDuration where
 
 newtype Target = To { getTarget :: Float }
   deriving (Ord, Eq, Show)
+
+newtype Texture = Texture { getTexture :: String }
+  deriving (Ord, Eq, Show)

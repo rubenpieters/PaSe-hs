@@ -1,5 +1,7 @@
 module Textures where
 
+import PaSe (Texture(..))
+
 import qualified Data.Map as Map
 import Data.Map (Map)
 import Data.Foldable (for_)
@@ -10,20 +12,20 @@ import qualified SDL.Image
 
 type Textures = Map String SDL.Texture
 
-textureFromMap :: Textures -> String -> SDL.Texture
-textureFromMap textures str = case Map.lookup str textures of
+textureFromMap :: Textures -> Texture -> SDL.Texture
+textureFromMap textures (Texture textureName) = case Map.lookup textureName textures of
   Just texture -> texture
-  Nothing -> error ("unknown texture: " ++ str)
+  Nothing -> error ("unknown texture: " ++ textureName)
 
 destroyTextures :: Textures -> IO ()
 destroyTextures textures = do
   for_ textures SDL.destroyTexture
 
-loadTextures :: [String] -> SDL.Renderer -> IO Textures
-loadTextures textureNames renderer = do
-  loadedTextures <- for textureNames $ \textureName -> do
+loadTextures :: [Texture] -> SDL.Renderer -> IO Textures
+loadTextures textures renderer = do
+  loadedTextures <- for textures $ \(Texture textureName) -> do
     loadTexture ("assets/" ++ textureName) renderer
-  let zipped = zip textureNames loadedTextures
+  let zipped = zip (map getTexture textures) loadedTextures
   return (Map.fromList zipped)
 
 loadTexture :: FilePath -> SDL.Renderer -> IO SDL.Texture
