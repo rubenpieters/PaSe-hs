@@ -18,7 +18,7 @@ Sequential composition expresses that after the first animation is done playing,
 
 ![Sequential](https://raw.githubusercontent.com/rubenpieters/PaSe-hs/master/pictures/sequential.gif)
 
-Example demo code is inside the `examples/` folder.
+Example demo code is inside the `PaSe-examples/` folder.
 
 # Assets
 

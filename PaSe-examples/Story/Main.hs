@@ -145,4 +145,4 @@ gifExport = let
   bgColor = makeColor 0 0 0 1
   sw = 500
   sh = 500
-  in exportPicturesToGif (4 {-# 0.04 s #-}) LoopingNever (sw, sh) bgColor "story.gif" animationFun [0.04, 0.08 .. 14]
+  in exportPicturesToGif (4 {- 0.04 s -}) LoopingNever (sw, sh) bgColor "story.gif" animationFun [0.04, 0.08 .. 14]
