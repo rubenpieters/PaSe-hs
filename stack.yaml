@@ -31,6 +31,7 @@ resolver: lts-14.21
 packages:
 - PaSe
 - PaSe-examples
+- PaSe-benchmarks
 
 # Dependency packages to be pulled from upstream that are not in the resolver.
 # These entries can reference officially published versions as well as
@@ -44,7 +45,7 @@ packages:
 extra-deps:
 - gloss-export-0.1.0.2
 
-# TODO: use
+# TODO: remove this once gloss-export upper bounds are updated
 allow-newer: true
 
 # Override default flag values for local packages and extra-deps
