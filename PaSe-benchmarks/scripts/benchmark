@@ -1,0 +1,4 @@
+#!/bin/bash
+
+stack build --executable-profiling --library-profiling --ghc-options="-fprof-auto -rtsopts"
+stack exec --profile -- benchmark +RTS -p
