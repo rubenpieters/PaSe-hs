@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes #-}
 
 module PaSe.Animation where
 
@@ -8,6 +9,7 @@ import PaSe.Types
 import PaSe.Mtl
 
 import Control.Monad (ap, liftM)
+import Control.Monad.Identity
 
 import Lens.Micro hiding (set)
 
@@ -124,3 +126,15 @@ instance (Monad m) => IfThenElse (Animation s m) where
 
 instance (Applicative m) => SetTexture s (Animation s m) where
   setTexture = set
+
+continue :: (Monad m) => Lens' anims (Maybe (Animation view m ())) -> Float -> (view, anims) -> m (view, anims)
+continue lens delta (view, anims) = case anims ^. lens of
+    Just anim -> do
+      (view', eResult, _) <- runAnimation anim view delta
+      case eResult of
+        Left anim' -> return (view', anims & lens .~ Just anim')
+        Right _ -> return (view', anims & lens .~ Nothing)
+    Nothing -> return (view, anims & lens .~ Nothing)
+
+continueI :: Lens' anims (Maybe (Animation view Identity ())) -> Float -> (view, anims) -> (view, anims)
+continueI lens delta s = runIdentity (continue lens delta s)

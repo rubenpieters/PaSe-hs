@@ -21,6 +21,7 @@ source-repository head
 library
   exposed-modules:
       PaSe
+      PaSe.Prelude
   other-modules:
       PaSe.Animation
       PaSe.Mtl

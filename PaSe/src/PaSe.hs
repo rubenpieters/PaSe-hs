@@ -1,25 +1,12 @@
 module PaSe
-  ( Animation(..)
-  , Parallel(..)
-  , LinearTo(..)
-  , Delay(..)
-  , Get(..)
-  , Set(..)
-  , SetTexture(..)
-  , IfThenElse(..)
-  , sequential
-  , parallel
-  , LensA(..)
-  , LinearToA(..)
-  , ParallelA(..)
-  , parallelA
-  , ConstA(..)
-  , Duration(..)
-  , Target(..)
-  , Texture(..)
+  ( module PaSe.Animation
+  , module PaSe.Mtl
+  , module PaSe.Arrow.Mtl
+  , module PaSe.Arrow.Const
+  , module PaSe.Types
   ) where
 
-import PaSe.Animation (Animation(..))
+import PaSe.Animation (Animation(..), continue, continueI)
 import PaSe.Mtl (Parallel(..), LinearTo(..), Delay(..), Get(..), Set(..), SetTexture(..), IfThenElse(..), sequential, parallel)
 import PaSe.Arrow.Mtl (LensA(..), LinearToA(..), ParallelA(..), parallelA)
 import PaSe.Arrow.Const (ConstA(..))

@@ -58,6 +58,9 @@ instance Monoid m => Delay (Const m) where
 class Set s f where
   set :: Traversal' s a -> a -> f ()
 
+instance Set s (Const [Texture]) where
+  set _ _ = Const []
+
 -- SetTexture
 
 class SetTexture s f where
