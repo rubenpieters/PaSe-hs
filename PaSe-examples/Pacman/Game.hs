@@ -65,31 +65,33 @@ gameLoop renderer textures view anims Counter{ now, prev } = do
       sPressed = any (eventIsPress SDL.KeycodeS) events
       dPressed = any (eventIsPress SDL.KeycodeD) events
       spcPressed = any (eventIsPress SDL.KeycodeSpace) events
-  -- info
-  let pacmanLoc = V.pacmanLoc (view ^. V.pacmanSprite)
-      thisTile = tileValue (view ^. V.field) pacmanLoc
-      nextTile = tileInDir pacmanLoc (view ^. V.pacmanExtra . V.moveDir) (view ^. V.field)
-      eatDot = thisTile == Just Dot
-  -- update game view
-  let view1 = case (wPressed, aPressed, sPressed, dPressed) of
-        (True, _, _, _) -> view & V.pacmanExtra . V.moveDir .~ DirUp
-        (_, True, _, _) -> view & V.pacmanExtra . V.moveDir .~ DirLeft
-        (_, _, True, _) -> view & V.pacmanExtra . V.moveDir  .~ DirDown
-        (_, _, _, True) -> view & V.pacmanExtra . V.moveDir  .~ DirRight
-        (_, _, _, _) -> view
-  let view2 = case (eatDot) of
-        True -> view1 & V.field %~ Map.delete pacmanLoc
-        False -> view1
-  let viewU = view2
-  -- update animations
-  let anims1 = case (eatDot) of
-        True -> anims & A.particleAnims %~ addInMaybe parallel (dotAnim (view ^. V.pacmanSprite . x) (view ^. V.pacmanSprite . y))
-        False -> anims
-  let anims2 = case (anims1 ^. A.pacmanM, nextTile) of
-        (Nothing, x) | x /= Just Wall -> anims1 & A.pacmanM .~ Just (pacmanMove view (view ^. V.pacmanExtra . V.moveDir))
-        (Nothing, Just Wall) -> anims1 & A.pacmanM .~ Just (pacmanRotate (view ^. V.pacmanExtra . V.moveDir))
-        _ -> anims1
-  let animsU = anims2
+  (animsU, viewU) <- case (anims ^. A.readyAnims) of
+    Just _ -> return (anims, view)
+    Nothing -> do
+      -- info
+      let pacmanLoc = V.pacmanLoc (view ^. V.pacmanSprite)
+          thisTile = tileValue (view ^. V.field) pacmanLoc
+          nextTile = tileInDir pacmanLoc (view ^. V.pacmanExtra . V.moveDir) (view ^. V.field)
+          eatDot = thisTile == Just Dot
+      -- update game view
+      let view1 = case (wPressed, aPressed, sPressed, dPressed) of
+            (True, _, _, _) -> view & V.pacmanExtra . V.moveDir .~ DirUp
+            (_, True, _, _) -> view & V.pacmanExtra . V.moveDir .~ DirLeft
+            (_, _, True, _) -> view & V.pacmanExtra . V.moveDir  .~ DirDown
+            (_, _, _, True) -> view & V.pacmanExtra . V.moveDir  .~ DirRight
+            (_, _, _, _) -> view
+      let view2 = case (eatDot) of
+            True -> view1 & V.field %~ Map.delete pacmanLoc
+            False -> view1
+      -- update animations
+      let anims1 = case (eatDot) of
+            True -> anims & A.particleAnims %~ addInMaybe parallel (dotAnim (view ^. V.pacmanSprite . x) (view ^. V.pacmanSprite . y))
+            False -> anims
+      let anims2 = case (anims1 ^. A.pacmanMoveAnims, nextTile) of
+            (Nothing, x) | x /= Just Wall -> anims1 & A.pacmanMoveAnims .~ Just (pacmanMove view (view ^. V.pacmanExtra . V.moveDir))
+            (Nothing, Just Wall) -> anims1 & A.pacmanMoveAnims .~ Just (pacmanRotate (view ^. V.pacmanExtra . V.moveDir))
+            _ -> anims1
+      return (anims2, view2)
   -- update game with animations
   let (viewA, animsA) = A.runAllAnimations deltaTime (viewU, animsU)
   -- draw game
