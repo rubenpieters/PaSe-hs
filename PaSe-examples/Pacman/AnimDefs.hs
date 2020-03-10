@@ -6,7 +6,7 @@
 
 module AnimDefs where
 
-import Prelude hiding ((.))
+import Prelude hiding ((.), id)
 
 import Types
 import View
@@ -35,14 +35,6 @@ pacmanMove :: (Applicative f, Parallel f, Delay f, SetTexture GameView f, Linear
   GameView -> Dir -> f ()
 pacmanMove view dir = let
   l = ["pacman0.png", "pacman1.png", "pacman2.png", "pacman1.png", "pacman0.png"]
-  moveOffset DirUp = -30
-  moveOffset DirDown = 30
-  moveOffset DirLeft = -30
-  moveOffset DirRight = 30
-  moveLens DirUp = y
-  moveLens DirDown = y
-  moveLens DirLeft = x
-  moveLens DirRight = x
   current = view ^. pacmanSprite . moveLens dir
   in
     pacmanRotate dir
@@ -50,6 +42,32 @@ pacmanMove view dir = let
     frameByFrame (pacmanSprite . texture) 0.05 l
     `parallel`
     linearTo (pacmanSprite . moveLens dir) (For 0.2) (To (current + moveOffset dir))
+
+ghostMove :: (Applicative f, Parallel f, Delay f, SetTexture GameView f, LinearTo GameView f, Set GameView f) =>
+  GameView -> Dir -> f ()
+ghostMove view dir = let
+  current = view ^. ghostSprite . moveLens dir
+  in
+    linearTo (ghostSprite . moveLens dir) (For 0.2) (To (current + moveOffset dir))
+
+deathAnim :: (Applicative f, Parallel f, Delay f, SetTexture GameView f, LinearTo GameView f, Set GameView f) =>
+  f ()
+deathAnim = let
+  l = ["pacman1.png", "pacman2.png", "pacman1.png", "pacman2.png"]
+  in
+    frameByFrame (pacmanSprite . texture) 0.15 l
+
+moveLens :: Dir -> Lens' Sprite Float
+moveLens DirUp = y
+moveLens DirDown = y
+moveLens DirLeft = x
+moveLens DirRight = x
+
+moveOffset :: Dir -> Float
+moveOffset DirUp = -30
+moveOffset DirDown = 30
+moveOffset DirLeft = -30
+moveOffset DirRight = 30
 
 dotAnim :: (LinearTo GameView f, Parallel f, LinearToA GameView a, Arrow a, ParallelA a, WithParticle GameView a f) =>
   Float -> Float -> f ()

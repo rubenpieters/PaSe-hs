@@ -19,6 +19,7 @@ import Lens.Micro.TH
 
 data PacmanExtra = PacmanExtra
   { _moveDir :: Dir
+  , _alive :: Bool
   }
 
 makeLenses ''PacmanExtra
@@ -32,8 +33,8 @@ data GameView = GameView
   , _currentParticleId :: Int
   }
 
-pacmanLoc :: Sprite -> (Int, Int)
-pacmanLoc Sprite{ _x, _y } = (floor (_x / 30), floor (_y / 30))
+tileLoc :: Sprite -> (Int, Int)
+tileLoc Sprite{ _x, _y } = (floor (_x / 30), floor (_y / 30))
 
 makeLenses ''GameView
 
@@ -53,6 +54,7 @@ initialPacman = Sprite
 initialPacmanExtra :: PacmanExtra
 initialPacmanExtra = PacmanExtra
   { _moveDir = DirRight
+  , _alive = True
   }
 
 initialGhost :: Sprite

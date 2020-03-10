@@ -15,6 +15,7 @@ import Sprite
 import Types
 import Field
 
+import System.Random
 import Control.Monad (unless)
 import Data.Word
 import qualified Data.Map as Map
@@ -24,8 +25,6 @@ import SDL (($=))
 import SDL.Vect
 
 import Lens.Micro
-
-import Debug.Trace
 
 data Counter = Counter
   { now :: Word64
@@ -64,12 +63,16 @@ gameLoop renderer textures view anims Counter{ now, prev } = do
       aPressed = any (eventIsPress SDL.KeycodeA) events
       sPressed = any (eventIsPress SDL.KeycodeS) events
       dPressed = any (eventIsPress SDL.KeycodeD) events
+      rPressed = any (eventIsPress SDL.KeycodeR) events
       spcPressed = any (eventIsPress SDL.KeycodeSpace) events
-  (animsU, viewU) <- case (anims ^. A.readyAnims) of
-    Just _ -> return (anims, view)
-    Nothing -> do
+  (animsU, viewU) <- case (rPressed, anims ^. A.readyAnims) of
+    (True, _) -> return (A.initialAnims, V.initialView)
+    (False, Just _) -> return (anims, view)
+    (False, Nothing) -> do
       -- info
-      let pacmanLoc = V.pacmanLoc (view ^. V.pacmanSprite)
+      let pacmanLoc = V.tileLoc (view ^. V.pacmanSprite)
+          ghostLoc = V.tileLoc (view ^. V.ghostSprite)
+          pacmanDie = pacmanLoc == ghostLoc
           thisTile = tileValue (view ^. V.field) pacmanLoc
           nextTile = tileInDir pacmanLoc (view ^. V.pacmanExtra . V.moveDir) (view ^. V.field)
           eatDot = thisTile == Just Dot
@@ -77,21 +80,40 @@ gameLoop renderer textures view anims Counter{ now, prev } = do
       let view1 = case (wPressed, aPressed, sPressed, dPressed) of
             (True, _, _, _) -> view & V.pacmanExtra . V.moveDir .~ DirUp
             (_, True, _, _) -> view & V.pacmanExtra . V.moveDir .~ DirLeft
-            (_, _, True, _) -> view & V.pacmanExtra . V.moveDir  .~ DirDown
-            (_, _, _, True) -> view & V.pacmanExtra . V.moveDir  .~ DirRight
+            (_, _, True, _) -> view & V.pacmanExtra . V.moveDir .~ DirDown
+            (_, _, _, True) -> view & V.pacmanExtra . V.moveDir .~ DirRight
             (_, _, _, _) -> view
       let view2 = case (eatDot) of
             True -> view1 & V.field %~ Map.delete pacmanLoc
             False -> view1
+      let view3 = case (pacmanDie) of
+            True -> view2 & V.pacmanExtra . V.alive .~ False
+            False -> view2
+      let viewU = view3
       -- update animations
-      let anims1 = case (eatDot) of
-            True -> anims & A.particleAnims %~ addInMaybe parallel (dotAnim (view ^. V.pacmanSprite . x) (view ^. V.pacmanSprite . y))
-            False -> anims
-      let anims2 = case (anims1 ^. A.pacmanMoveAnims, nextTile) of
-            (Nothing, x) | x /= Just Wall -> anims1 & A.pacmanMoveAnims .~ Just (pacmanMove view (view ^. V.pacmanExtra . V.moveDir))
-            (Nothing, Just Wall) -> anims1 & A.pacmanMoveAnims .~ Just (pacmanRotate (view ^. V.pacmanExtra . V.moveDir))
+      let anims1 = case (eatDot, viewU ^. V.pacmanExtra . V.alive) of
+            (_, False) -> anims
+            (True, True) -> anims & A.particleAnims %~ addInMaybe parallel (dotAnim (view ^. V.pacmanSprite . x) (view ^. V.pacmanSprite . y))
+            (False, True) -> anims
+      let anims2 = case (anims1 ^. A.pacmanMoveAnims, nextTile, viewU ^. V.pacmanExtra . V.alive) of
+            (_, _, False) -> anims1
+            (Nothing, x, True) | x /= Just Wall -> anims1 & A.pacmanMoveAnims .~ Just (pacmanMove view (view ^. V.pacmanExtra . V.moveDir))
+            (Nothing, Just Wall, True) -> anims1 & A.pacmanMoveAnims .~ Just (pacmanRotate (view ^. V.pacmanExtra . V.moveDir))
             _ -> anims1
-      return (anims2, view2)
+      anims3 <- case (anims2 ^. A.ghostMoveAnims, viewU ^. V.pacmanExtra . V.alive) of
+            (_, False) -> return anims2
+            (Nothing, True) -> do
+              let possibleDirs = nonWallDirs (view ^. V.field) ghostLoc
+              randomIndex <- randomRIO (0, length possibleDirs - 1)
+              let randomDir = possibleDirs !! randomIndex
+              return (anims2 & A.ghostMoveAnims .~ Just (ghostMove view randomDir))
+            (Just _, True) -> return anims2
+      let anims4 = case (anims3 ^. A.deathAnims, viewU ^. V.pacmanExtra . V.alive) of
+            (_, True) -> anims3
+            (Just _, False) -> anims3
+            (Nothing, False) -> anims3 & A.deathAnims .~ Just deathAnim
+      let animsU = anims4
+      return (animsU, viewU)
   -- update game with animations
   let (viewA, animsA) = A.runAllAnimations deltaTime (viewU, animsU)
   -- draw game
