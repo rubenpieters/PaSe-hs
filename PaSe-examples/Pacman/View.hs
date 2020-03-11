@@ -40,8 +40,8 @@ makeLenses ''GameView
 
 initialPacman :: Sprite
 initialPacman = Sprite
-  { _x = 60
-  , _y = 60
+  { _x = 30
+  , _y = 30
   , _width = 30
   , _height = 30
   , _alpha = 255
@@ -59,8 +59,8 @@ initialPacmanExtra = PacmanExtra
 
 initialGhost :: Sprite
 initialGhost = Sprite
-  { _x = 300
-  , _y = 300
+  { _x = 540
+  , _y = 540
   , _width = 30
   , _height = 30
   , _alpha = 255
@@ -71,15 +71,28 @@ initialGhost = Sprite
   }
 
 initialField :: Field
-initialField = Map.fromList
-  [ ((0, 1), Dot)
-  , ((3, 3), Dot)
-  , ((4, 3), Dot)
-  , ((5, 3), Dot)
-  , ((6, 3), Dot)
-  , ((5, 5), Wall)
-  , ((6, 5), Wall)
-  , ((5, 6), Wall)
+initialField = parseField
+  [ "wwwwwwwwwwwwwwwwwwww"
+  , "w........ww........w"
+  , "w...ww...ww....ww..w"
+  , "w...ww...ww....ww..w"
+  , "w..................w"
+  , "wwww..ww....ww..wwww"
+  , "wwww..ww....ww..wwww"
+  , "w.....ww....ww.....w"
+  , "w.....ww....ww.....w"
+  , "w.....ww....ww.....w"
+  , "w..................w"
+  , "w.....ww....ww.....w"
+  , "wwww..ww....ww..wwww"
+  , "wwww..ww....ww..wwww"
+  , "w..................w"
+  , "w..w............w..w"
+  , "w..w  wwwwwww...w..w"
+  , "w..w.....ww.....w..w"
+  , "w..wwwww.ww.wwwww..w"
+  , "w..................w"
+  , "wwwwwwwwwwwwwwwwwwww"
   ]
 
 initialView :: GameView
