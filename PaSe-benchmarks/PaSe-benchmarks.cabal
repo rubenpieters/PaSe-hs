@@ -33,6 +33,7 @@ executable benchmark
     , microlens-th
     , mtl
     , containers
+    , clock
 
   default-language: Haskell2010
 
